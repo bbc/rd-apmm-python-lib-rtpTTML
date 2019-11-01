@@ -5,6 +5,9 @@
 # This is an internal BBC tool and is not licensed externally
 # If you have received a copy of this erroneously then you do
 # not have permission to reproduce it.
+#
+# type: ignore
+#
 
 from __future__ import print_function
 from setuptools import setup
@@ -48,7 +51,12 @@ package_names = packages.keys()
 
 # This is where you list packages which are required
 packages_required = [
-    "six"
+    "six",
+    "flask",
+    "mypy",
+    "lxml",
+    "rtp",
+    "rtpPayload_ttml"
 ]
 
 # This is where you list locations for packages not

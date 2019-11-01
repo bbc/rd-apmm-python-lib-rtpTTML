@@ -10,9 +10,9 @@
 Template for developing other python libraries.
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
+from .ttmlServer import TTMLServer
+from .ttmlClient import TTMLClient
 
-__all__ = ["template"]
+__all__ = ["TTMLServer", "TTMLClient"]
 
 template = True
