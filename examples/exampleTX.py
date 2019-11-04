@@ -3,7 +3,7 @@ from uuid import uuid4
 import asyncio
 import argparse
 from lxml import etree
-from rtpTTML import TTMLServer
+from rtpTTML import TTMLServer  # type: ignore
 
 
 class PacketGen:

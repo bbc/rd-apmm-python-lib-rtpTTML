@@ -1,8 +1,8 @@
 from datetime import datetime
 from copy import deepcopy
 import socket
-from rtp import RTP, PayloadType
-from rtpPayload_ttml import RTPPayload_TTML
+from rtp import RTP, PayloadType  # type: ignore
+from rtpPayload_ttml import RTPPayload_TTML  # type: ignore
 
 EPOCH = datetime.utcfromtimestamp(0)
 
