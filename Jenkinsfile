@@ -52,7 +52,9 @@ pipeline {
                         }
                         bbcGithubNotify(context: "tests/lint", status: "PENDING")
                         // Use a workdirectory in /tmp to avoid shebang length limitation
-                        sh 'tox -e lint --recreate --workdir /tmp/$(basename ${WORKSPACE})/tox-lint'
+                        withBBCRDPythonArtifactory {
+                            sh 'tox -e lint --recreate --workdir /tmp/$(basename ${WORKSPACE})/tox-lint'
+                        }
                         script {
                             env.lint_result = "SUCCESS" // This will only run if the sh above succeeded
                         }
@@ -70,7 +72,9 @@ pipeline {
                         }
                         bbcGithubNotify(context: "tests/type", status: "PENDING")
                         // Use a workdirectory in /tmp to avoid shebang length limitation
-                        sh 'tox -e typecheck --recreate --workdir /tmp/$(basename ${WORKSPACE})/tox-type'
+                        withBBCRDPythonArtifactory {
+                            sh 'tox -e typecheck --recreate --workdir /tmp/$(basename ${WORKSPACE})/tox-type'
+                        }
                         script {
                             env.type_result = "SUCCESS" // This will only run if the sh above succeeded
                         }
@@ -116,7 +120,9 @@ pipeline {
                             env.py3wheel_result = "FAILURE"
                         }
                         bbcGithubNotify(context: "wheelBuild/py3", status: "PENDING")
-                        bbcMakeWheel("py3")
+                        withBBCRDPythonArtifactory {
+                            bbcMakeWheel("py3")
+                        }
                         script {
                             env.py3wheel_result = "SUCCESS" // This will only run if the steps above succeeded
                         }
