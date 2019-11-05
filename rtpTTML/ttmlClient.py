@@ -14,9 +14,9 @@ class TTMLClient:
 
     def run(self, callback):
         while True:
-            data = bytearray(self.socket.recv(2**16))
+            data = self.socket.recv(2**16)
 
-            packet = RTP().fromBytearray(data)
+            packet = RTP().fromBytes(data)
             payload = RTPPayload_TTML().fromBytearray(packet.payload)
             doc = payload.userDataWords
 
