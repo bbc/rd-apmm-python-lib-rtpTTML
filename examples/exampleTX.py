@@ -6,7 +6,7 @@ from lxml import etree
 from rtpTTML import TTMLServer  # type: ignore
 
 
-class PacketGen:
+class DocGen:
     def __init__(self, flowID):
         self.flowID = flowID
 
@@ -33,33 +33,33 @@ class PacketGen:
                 bNSMAP["ttp"] + "markerMode": "discontinuous",
                 bNSMAP["tts"] + "extent": "1920px 1080px",
                 bNSMAP["ebuttm"] + "sequenceIdentifier": self.flowID,
-                bNSMAP["ebuttm"] + "sequenceNumber": seqNum})
+                bNSMAP["ebuttm"] + "sequenceNumber": str(seqNum)})
 
         head = etree.SubElement(tt, bNSMAP["tt"] + "head")
         metadata = etree.SubElement(head, bNSMAP["tt"] + "metadata")
         docMetadata = etree.SubElement(
             metadata, bNSMAP["ebuttm"] + "documentMetadata")
 
-        etree.SubElement(
+        ebuttVer = etree.SubElement(
             docMetadata,
-            bNSMAP["ebuttm"] + "documentEbuttVersion",
-            text="v1.0")
+            bNSMAP["ebuttm"] + "documentEbuttVersion")
+        ebuttVer.text = "v1.0"
 
-        etree.SubElement(
+        numSubs = etree.SubElement(
             docMetadata,
-            bNSMAP["ebuttm"] + "documentTotalNumberOfSubtitles",
-            text="1")
+            bNSMAP["ebuttm"] + "documentTotalNumberOfSubtitles")
+        numSubs.text = "1"
 
-        etree.SubElement(
+        maxChar = etree.SubElement(
             docMetadata,
             bNSMAP["ebuttm"] +
-            "documentMaximumNumberOfDisplayableCharacterInAnyRow",
-            text="40")
+            "documentMaximumNumberOfDisplayableCharacterInAnyRow")
+        maxChar.text = "40"
 
-        etree.SubElement(
+        country = etree.SubElement(
             docMetadata,
-            bNSMAP["ebuttm"] + "documentCountryOfOrigin",
-            text="gb")
+            bNSMAP["ebuttm"] + "documentCountryOfOrigin")
+        country.text = "gb"
 
         styling = etree.SubElement(head, bNSMAP["tt"] + "styling")
 
@@ -92,8 +92,7 @@ class PacketGen:
             bNSMAP["tt"] + "style",
             attrib={
                 bNSMAP["xmlns"] + "id": "textCenter",
-                bNSMAP["tts"] + "textAlign": "center"},
-            text="gb")
+                bNSMAP["tts"] + "textAlign": "center"})
 
         layout = etree.SubElement(head, bNSMAP["tt"] + "layout")
         etree.SubElement(
@@ -121,11 +120,11 @@ class PacketGen:
                 "style": "textCenter",
                 "region": "bottom"})
 
-        etree.SubElement(
+        span = etree.SubElement(
             p,
             bNSMAP["tt"] + "span",
-            attrib={"style": "whiteOnBlack"},
-            text=text)
+            attrib={"style": "whiteOnBlack"})
+        span.text = text
 
         return etree.tostring(tt, encoding="unicode")
 
@@ -133,13 +132,13 @@ class PacketGen:
 class Transmitter:
     def __init__(self, address, port):
         self.flowID = str(uuid4())
-        self.pGen = PacketGen(self.flowID)
+        self.pGen = DocGen(self.flowID)
         self.server = TTMLServer(address, port)
 
     async def run(self):
         while True:
             now = datetime.now()
-            doc = self.pGen.generateDoc(str(self.server.nextSeqNum), str(now))
+            doc = self.pGen.generateDoc(self.server.nextSeqNum, str(now))
 
             self.server.sendDoc(doc, now)
             await asyncio.sleep(1)
