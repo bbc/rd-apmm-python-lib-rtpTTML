@@ -5,13 +5,13 @@ from rtpTTML import TTMLClient  # type: ignore
 
 class Receiver:
     def __init__(self, port):
-        self.client = TTMLClient(port)
+        self.client = TTMLClient(port, self.processDoc)
 
-    def processDoc(self, doc):
+    def processDoc(self, doc, timestamp):
         print(doc)
 
     def run(self):
-        self.client.run(self.processDoc)
+        self.client.run()
 
 
 if __name__ == "__main__":
