@@ -13,11 +13,13 @@ class TTMLServer:
        self,
        address: str,
        port: int,
+       maxFragmentSize: int = 1200,
        payloadType: PayloadType = PayloadType.DYNAMIC_96,
        initialSeqNum: Union[int, None] = None,
        tsOffset: Union[int, None] = None):
         self.address = address
         self.port = port
+        self.maxFragmentSize = maxFragmentSize
         self.payloadType = payloadType
 
         if initialSeqNum is not None:
@@ -67,9 +69,7 @@ class TTMLServer:
         timestamp = now_ms + self.tsOffset
         truncatedTS = timestamp % 2**32
 
-        maxFragmentSize = 1200  # TODO: measure this or select a sensible val
-
-        docFragments = self.fragmentDoc(doc, maxFragmentSize)
+        docFragments = self.fragmentDoc(doc, self.maxFragmentSize)
 
         for x in range(len(docFragments)):
             isLast = x == (len(docFragments) - 1)
