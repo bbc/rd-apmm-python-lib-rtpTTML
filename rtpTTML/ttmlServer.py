@@ -1,3 +1,4 @@
+from typing import Union, List
 from datetime import datetime
 import socket
 from random import randrange
@@ -10,11 +11,11 @@ EPOCH = datetime.utcfromtimestamp(0)
 class TTMLServer:
     def __init__(
        self,
-       address,
-       port,
-       payloadType=PayloadType.DYNAMIC_96,
-       initialSeqNum=None,
-       tsOffset=None):
+       address: str,
+       port: int,
+       payloadType: PayloadType = PayloadType.DYNAMIC_96,
+       initialSeqNum: Union[int, None] = None,
+       tsOffset: Union[int, None] = None):
         self.address = address
         self.port = port
         self.payloadType = payloadType
@@ -31,10 +32,7 @@ class TTMLServer:
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    def nextSeqNum(self):
-        return self.nextSeqNum
-
-    def fragmentDoc(self, doc, maxLen):
+    def fragmentDoc(self, doc: str, maxLen: int) -> List[RTP]:
         fragments = []
         thisStart = 0
 
@@ -52,7 +50,7 @@ class TTMLServer:
 
         return fragments
 
-    def generateRTPPacket(self, doc, time, marker):
+    def generateRTPPacket(self, doc: str, time: int, marker: bool) -> RTP:
         packet = RTP(
             timestamp=time,
             sequenceNumber=self.nextSeqNum,
@@ -64,12 +62,14 @@ class TTMLServer:
 
         return packet
 
-    def sendDoc(self, doc, time):
+    def sendDoc(self, doc: str, time: datetime) -> None:
         now_ms = int((time - EPOCH).total_seconds() * 1000)
         timestamp = now_ms + self.tsOffset
         truncatedTS = timestamp % 2**32
 
-        docFragments = self.fragmentDoc(doc, 1200)
+        maxFragmentSize = 1200  # TODO: measure this or select a sensible val
+
+        docFragments = self.fragmentDoc(doc, maxFragmentSize)
 
         for x in range(len(docFragments)):
             isLast = x == (len(docFragments) - 1)

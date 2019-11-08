@@ -1,5 +1,5 @@
 from datetime import datetime
-from uuid import uuid4
+from uuid import uuid4, UUID
 import asyncio
 import argparse
 from lxml import etree
@@ -7,10 +7,10 @@ from rtpTTML import TTMLServer  # type: ignore
 
 
 class DocGen:
-    def __init__(self, flowID):
-        self.flowID = flowID
+    def __init__(self, flowID: UUID):
+        self.flowID = str(flowID)
 
-    def generateDoc(self, seqNum, text):
+    def generateDoc(self, seqNum: int, text: str) -> str:
         NSMAP = {
             "tt": "http://www.w3.org/ns/ttml",
             "xmlns": "http://www.w3.org/XML/1998/namespace",
@@ -130,12 +130,12 @@ class DocGen:
 
 
 class Transmitter:
-    def __init__(self, address, port):
-        self.flowID = str(uuid4())
+    def __init__(self, address: str, port: int):
+        self.flowID = uuid4()
         self.pGen = DocGen(self.flowID)
         self.server = TTMLServer(address, port)
 
-    async def run(self):
+    async def run(self) -> None:
         while True:
             now = datetime.now()
             doc = self.pGen.generateDoc(self.server.nextSeqNum, str(now))

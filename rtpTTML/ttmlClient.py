@@ -1,3 +1,4 @@
+from typing import List, Callable, Union, Dict
 import socket
 from rtp import RTP  # type: ignore
 from rtpPayload_ttml import RTPPayload_TTML  # type: ignore
@@ -6,35 +7,37 @@ MAX_SEQ_NUM = (2**16) - 1
 
 
 class OrderedBuffer:
-    def __init__(self, maxSize=5, maxKey=MAX_SEQ_NUM):
+    def __init__(self, maxSize: int = 5, maxKey: int = MAX_SEQ_NUM):
+        self.initialised = False
         self.maxSize = maxSize
         self.maxKey = maxKey
-        self.mostRecentKey = None
-        self.buffer = {}
+        self.mostRecentKey = 0
+        self.buffer = {}  # type: Dict[int, RTP]
 
-    def nextKey(self):
+    def nextKey(self) -> int:
         nextKey = self.mostRecentKey + 1
 
         return nextKey % (self.maxKey + 1)
 
-    def ffwMostRecent(self):
+    def ffwMostRecent(self) -> None:
         if len(self.buffer) == 0:
             return
 
         while self.nextKey() not in self.buffer:
             self.mostRecentKey = self.nextKey()
 
-    def pop(self):
+    def pop(self) -> RTP:
         ret = self.buffer.pop(self.nextKey(), None)
         self.mostRecentKey = self.nextKey()
 
         return ret
 
-    def push(self, key, value):
+    def push(self, key: int, value: RTP) -> None:
         self.buffer[key] = value
 
-        if self.mostRecentKey is None:
+        if not self.initialised:
             self.mostRecentKey = key - 1
+            self.initialised = True
 
         if len(self.buffer) >= self.maxSize:
             self.ffwMostRecent()
@@ -42,17 +45,15 @@ class OrderedBuffer:
         if len(self.buffer) > self.maxSize:
             self.pop()
 
-    def available(self):
+    def available(self) -> bool:
         available = False
 
-        if len(self.buffer) > 0:
-            if ((self.mostRecentKey is None) or
-               self.nextKey() in self.buffer):
-                available = True
+        if self.nextKey() in self.buffer:
+            available = True
 
         return available
 
-    def get(self):
+    def get(self) -> List[RTP]:
         ret = []
 
         while self.available():
@@ -60,16 +61,22 @@ class OrderedBuffer:
 
         return ret
 
-    def pushGet(self, key, value):
+    def pushGet(self, key: int, value: RTP) -> List[RTP]:
         self.push(key, value)
         return self.get()
 
 
 class TTMLClient:
-    def __init__(self, port, callback, recvBufSize=None, timeout=None):
-        self.fragments = {}
-        self.curTimestamp = None
-        self.prevSeqNum = None
+    def __init__(
+       self,
+       port: int,
+       callback: Callable[[str, int], None],
+       recvBufSize: int = None,
+       timeout: Union[float, None] = None):
+        self.initialised = False
+        self.fragments = {}  # type: Dict[int, RTP]
+        self.curTimestamp = 0
+        self.prevSeqNum = 0
         self.port = port
         self.callback = callback
 
@@ -90,7 +97,7 @@ class TTMLClient:
 
         self.socket.bind(('', self.port))
 
-    def unloopSeqNum(self, prevNum, thisNum):
+    def unloopSeqNum(self, prevNum: int, thisNum: int) -> int:
         perC10 = MAX_SEQ_NUM * 0.1
         perC90 = MAX_SEQ_NUM * 0.9
 
@@ -100,14 +107,14 @@ class TTMLClient:
 
         return thisNum + MAX_SEQ_NUM
 
-    def keysComplete(self):
+    def keysComplete(self) -> bool:
         minKey = min(self.fragments)
         maxKey = max(self.fragments)
         expectedLen = maxKey - minKey + 1
 
         return len(self.fragments) == expectedLen
 
-    def processFragments(self):
+    def processFragments(self) -> None:
         if not self.keysComplete():
             # Discard
             self.fragments = {}
@@ -125,11 +132,11 @@ class TTMLClient:
 
         self.callback(doc, self.curTimestamp)
 
-    def processPacket(self, packet):
+    def processPacket(self, packet: RTP) -> None:
         # Initialise or new doc. When initialising, we'll asume the first
         # packet is the start of the doc. It'll be found to be invalid
         # later if we were wrong. New TS means a new document
-        if (self.prevSeqNum is None or
+        if ((not self.initialised) or
            packet.timestamp != self.curTimestamp):
             # If we haven't processed by now, document is incomplete
             # so we discard it
@@ -137,9 +144,11 @@ class TTMLClient:
 
             # Assume this packet is the first in doc. If we're wrong, the doc
             # won't be valid TTML when decoded anyway
-            if self.prevSeqNum is None:
+            if not self.initialised:
                 self.prevSeqNum = packet.sequenceNumber - 1
             self.curTimestamp = packet.timestamp
+
+            self.initialised = True
 
         payload = RTPPayload_TTML().fromBytearray(packet.payload)
 
@@ -150,7 +159,7 @@ class TTMLClient:
 
         self.prevSeqNum = unloopedSeqNum
 
-    def run(self):
+    def run(self) -> None:
         while True:
             data = self.socket.recv(self.recvBufSize)
 
