@@ -8,47 +8,47 @@ MAX_SEQ_NUM = (2**16) - 1
 
 class OrderedBuffer:
     def __init__(self, maxSize: int = 5, maxKey: int = MAX_SEQ_NUM):
-        self.initialised = False
-        self.maxSize = maxSize
-        self.maxKey = maxKey
-        self.mostRecentKey = 0
-        self.buffer = {}  # type: Dict[int, RTP]
+        self._initialised = False
+        self._maxSize = maxSize
+        self._maxKey = maxKey
+        self._mostRecentKey = 0
+        self._buffer = {}  # type: Dict[int, RTP]
 
-    def nextKey(self) -> int:
-        nextKey = self.mostRecentKey + 1
+    def _nextKey(self) -> int:
+        nextKey = self._mostRecentKey + 1
 
-        return nextKey % (self.maxKey + 1)
+        return nextKey % (self._maxKey + 1)
 
-    def ffwMostRecent(self) -> None:
-        if len(self.buffer) == 0:
+    def _ffwMostRecent(self) -> None:
+        if len(self._buffer) == 0:
             return
 
-        while self.nextKey() not in self.buffer:
-            self.mostRecentKey = self.nextKey()
+        while self._nextKey() not in self._buffer:
+            self._mostRecentKey = self._nextKey()
 
     def pop(self) -> RTP:
-        ret = self.buffer.pop(self.nextKey(), None)
-        self.mostRecentKey = self.nextKey()
+        ret = self._buffer.pop(self._nextKey(), None)
+        self._mostRecentKey = self._nextKey()
 
         return ret
 
     def push(self, key: int, value: RTP) -> None:
-        self.buffer[key] = value
+        self._buffer[key] = value
 
-        if not self.initialised:
-            self.mostRecentKey = key - 1
-            self.initialised = True
+        if not self._initialised:
+            self._mostRecentKey = key - 1
+            self._initialised = True
 
-        if len(self.buffer) >= self.maxSize:
-            self.ffwMostRecent()
+        if len(self._buffer) >= self._maxSize:
+            self._ffwMostRecent()
 
-        if len(self.buffer) > self.maxSize:
+        if len(self._buffer) > self._maxSize:
             self.pop()
 
     def available(self) -> bool:
         available = False
 
-        if self.nextKey() in self.buffer:
+        if self._nextKey() in self._buffer:
             available = True
 
         return available
