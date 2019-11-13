@@ -17,24 +17,28 @@ class TTMLServer:
        payloadType: PayloadType = PayloadType.DYNAMIC_96,
        initialSeqNum: Union[int, None] = None,
        tsOffset: Union[int, None] = None):
-        self.address = address
-        self.port = port
-        self.maxFragmentSize = maxFragmentSize
-        self.payloadType = payloadType
+        self._address = address
+        self._port = port
+        self._maxFragmentSize = maxFragmentSize
+        self._payloadType = payloadType
 
         if initialSeqNum is not None:
-            self.nextSeqNum = initialSeqNum
+            self._nextSeqNum = initialSeqNum
         else:
-            self.nextSeqNum = randrange((2**16)-1)
+            self._nextSeqNum = randrange(2**16)
 
         if tsOffset is not None:
-            self.tsOffset = tsOffset
+            self._tsOffset = tsOffset
         else:
-            self.tsOffset = randrange((2**32)-1)
+            self._tsOffset = randrange(2**32)
 
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    def fragmentDoc(self, doc: str, maxLen: int) -> List[RTP]:
+    @property
+    def nextSeqNum(self) -> int:
+        return self._nextSeqNum
+
+    def _fragmentDoc(self, doc: str, maxLen: int) -> List[RTP]:
         fragments = []
         thisStart = 0
 
@@ -52,28 +56,32 @@ class TTMLServer:
 
         return fragments
 
-    def generateRTPPacket(self, doc: str, time: int, marker: bool) -> RTP:
+    def _datetimeToRTPTs(self, time: datetime) -> int:
+        now_ms = int((time - EPOCH).total_seconds() * 1000)
+        timestamp = now_ms + self._tsOffset
+        truncatedTS = timestamp % 2**32
+
+        return truncatedTS
+
+    def _generateRTPPacket(self, doc: str, time: int, marker: bool) -> RTP:
         packet = RTP(
             timestamp=time,
-            sequenceNumber=self.nextSeqNum,
+            sequenceNumber=self._nextSeqNum,
             payload=RTPPayload_TTML(userDataWords=doc).toBytearray(),
             marker=marker,
-            payloadType=self.payloadType
+            payloadType=self._payloadType
         )
-        self.nextSeqNum += 1
+        self._nextSeqNum += 1
 
         return packet
 
     def sendDoc(self, doc: str, time: datetime) -> None:
-        now_ms = int((time - EPOCH).total_seconds() * 1000)
-        timestamp = now_ms + self.tsOffset
-        truncatedTS = timestamp % 2**32
+        rtpTs = self._datetimeToRTPTs(time)
+        docFragments = self._fragmentDoc(doc, self._maxFragmentSize)
 
-        docFragments = self.fragmentDoc(doc, self.maxFragmentSize)
-
+        lastIndex = len(docFragments) - 1
         for x in range(len(docFragments)):
-            isLast = x == (len(docFragments) - 1)
-            packet = self.generateRTPPacket(
-                docFragments[x], truncatedTS, isLast)
+            isLast = (x == lastIndex)
+            packet = self._generateRTPPacket(docFragments[x], rtpTs, isLast)
 
-            self.socket.sendto(packet.toBytes(), (self.address, self.port))
+            self._socket.sendto(packet.toBytes(), (self._address, self._port))

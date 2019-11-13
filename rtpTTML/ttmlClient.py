@@ -1,5 +1,6 @@
 from typing import List, Callable, Union, Dict
 import socket
+from collections import OrderedDict
 from rtp import RTP  # type: ignore
 from rtpPayload_ttml import RTPPayload_TTML  # type: ignore
 
@@ -73,103 +74,104 @@ class TTMLClient:
        callback: Callable[[str, int], None],
        recvBufSize: int = None,
        timeout: Union[float, None] = None):
-        self.initialised = False
-        self.fragments = {}  # type: Dict[int, RTP]
-        self.curTimestamp = 0
-        self.prevSeqNum = 0
-        self.port = port
-        self.callback = callback
+        self._fragments = OrderedDict()  # type: Dict[int, RTP]
+        self._curTimestamp = 0
+        self._port = port
+        self._callback = callback
 
         if recvBufSize is None:
-            self.recvBufSize = 2**16
+            self._recvBufSize = 2**16
         else:
-            self.recvBufSize = recvBufSize
+            self._recvBufSize = recvBufSize
 
-        self.packetBuff = OrderedBuffer()
+        self._packetBuff = OrderedBuffer()
 
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         if timeout is None:
             # Set the timeout value of the socket to 30sec
-            self.socket.settimeout(30)
+            self._socket.settimeout(30)
         else:
-            self.socket.settimeout(timeout)
+            self._socket.settimeout(timeout)
 
-        self.socket.bind(('', self.port))
+        self._socket.bind(('', self._port))
 
-    def unloopSeqNum(self, prevNum: int, thisNum: int) -> int:
+    def _unloopSeqNum(self, prevNum: int, thisNum: int) -> int:
+        loopOffset = MAX_SEQ_NUM + 1
+
+        prevNumMod = prevNum % loopOffset
+
+        prevNumOffset = prevNum - prevNumMod  # prevNum may already have looped
+
+        # Margins for detecting when number has looped
         perC10 = MAX_SEQ_NUM * 0.1
         perC90 = MAX_SEQ_NUM * 0.9
 
         # Account for missing packets around edges
-        if (thisNum > perC10) or (prevNum < perC90):
-            return thisNum
+        if (thisNum > perC10) or (prevNumMod < perC90):
+            return thisNum + prevNumOffset
 
-        return thisNum + MAX_SEQ_NUM
+        # Num has looped
+        return thisNum + loopOffset + prevNumOffset
 
-    def keysComplete(self) -> bool:
-        minKey = min(self.fragments)
-        maxKey = max(self.fragments)
+    def _keysComplete(self) -> bool:
+        if len(self._fragments) == 0:
+            return False
+
+        minKey = min(self._fragments)
+        maxKey = max(self._fragments)
         expectedLen = maxKey - minKey + 1
 
-        return len(self.fragments) == expectedLen
+        return len(self._fragments) == expectedLen
 
-    def processFragments(self) -> None:
-        if not self.keysComplete():
+    def _processFragments(self) -> None:
+        if not self._keysComplete():
             # Discard
-            self.fragments = {}
+            self._fragments.clear()
             return
 
         # Reconstruct the document
         doc = ""
 
-        for k, v in self.fragments.items():
+        for k, v in self._fragments.items():
             doc += v
 
         # We've finished re-constructing this document.
         # Discard the fragments.
-        self.fragments = {}
+        self._fragments.clear()
 
-        self.callback(doc, self.curTimestamp)
+        self._callback(doc, self._curTimestamp)
 
-    def processPacket(self, packet: RTP) -> None:
-        # Initialise or new doc. When initialising, we'll asume the first
-        # packet is the start of the doc. It'll be found to be invalid
-        # later if we were wrong. New TS means a new document
-        if ((not self.initialised) or
-           packet.timestamp != self.curTimestamp):
+    def _processPacket(self, packet: RTP) -> None:
+        # New TS means a new document
+        if self._curTimestamp != packet.timestamp:
             # If we haven't processed by now, document is incomplete
             # so we discard it
-            self.fragments = {}
+            self._fragments.clear()
 
             # Assume this packet is the first in doc. If we're wrong, the doc
             # won't be valid TTML when decoded anyway
-            if not self.initialised:
-                self.prevSeqNum = packet.sequenceNumber - 1
-            self.curTimestamp = packet.timestamp
+            self._curTimestamp = packet.timestamp
 
-            self.initialised = True
+        seqNumber = packet.sequenceNumber
+        if len(self._fragments) > 0:
+            seqNumber = self._unloopSeqNum(
+                max(self._fragments), packet.sequenceNumber)
 
         payload = RTPPayload_TTML().fromBytearray(packet.payload)
-
-        unloopedSeqNum = self.unloopSeqNum(
-            self.prevSeqNum, packet.sequenceNumber)
-
-        self.fragments[unloopedSeqNum] = payload.userDataWords
-
-        self.prevSeqNum = unloopedSeqNum
+        self._fragments[seqNumber] = payload.userDataWords
 
     def run(self) -> None:
         while True:
-            data = self.socket.recv(self.recvBufSize)
+            data = self._socket.recv(self._recvBufSize)
 
             newPacket = RTP().fromBytes(data)
 
-            packets = self.packetBuff.pushGet(
+            packets = self._packetBuff.pushGet(
                 newPacket.sequenceNumber, newPacket)
 
             for packet in packets:
-                self.processPacket(packet)
+                self._processPacket(packet)
 
                 if packet.marker:
-                    self.processFragments()
+                    self._processFragments()
