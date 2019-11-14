@@ -4,14 +4,14 @@ from rtpTTML import TTMLClient  # type: ignore
 
 
 class Receiver:
-    def __init__(self, port):
-        self.client = TTMLClient(port)
+    def __init__(self, port: int):
+        self.client = TTMLClient(port, self.processDoc)
 
-    def processDoc(self, doc):
-        print(doc)
+    def processDoc(self, doc: str, timestamp: int) -> None:
+        print("{}\n".format(doc))
 
-    def run(self):
-        self.client.run(self.processDoc)
+    async def run(self) -> None:
+        self.client.run()
 
 
 if __name__ == "__main__":
