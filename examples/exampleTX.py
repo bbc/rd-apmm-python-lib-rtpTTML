@@ -3,7 +3,7 @@ from uuid import uuid4, UUID
 import asyncio
 import argparse
 from lxml import etree
-from rtpTTML import TTMLServer  # type: ignore
+from rtpTTML import ttmlSender  # type: ignore
 
 
 class DocGen:
@@ -129,18 +129,15 @@ class DocGen:
         return etree.tostring(tt, encoding="unicode")
 
 
-class Transmitter:
-    def __init__(self, address: str, port: int):
-        self.flowID = uuid4()
-        self.pGen = DocGen(self.flowID)
-        self.server = TTMLServer(address, port)
-
-    async def run(self) -> None:
+async def amain(address: str, port: int) -> None:
+    flowid = uuid4()
+    docgen = DocGen(flowid)
+    async with TTMLSender(address, port) as sender:
         while True:
             now = datetime.now()
-            doc = self.pGen.generateDoc(self.server.nextSeqNum, str(now))
+            doc = docgen.generateDoc(sender.nextSeqNum, str(now))
 
-            self.server.sendDoc(doc, now)
+            await server.sendDoc(doc, now)
             await asyncio.sleep(1)
 
 
@@ -161,8 +158,7 @@ if __name__ == "__main__":
         required=True)
     args = parser.parse_args()
 
-    tx = Transmitter(args.ip_address, args.port)
-
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(tx.run())
+    loop.create_task(amain(args.ip_address, args.port))
+    loop.run_forever()
     loop.close()

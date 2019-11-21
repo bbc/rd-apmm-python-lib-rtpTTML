@@ -10,9 +10,9 @@
 Template for developing other python libraries.
 """
 
-from .ttmlServer import TTMLServer
+from .ttmlServer import TTMLSender
 from .ttmlClient import TTMLClient
 
-__all__ = ["TTMLServer", "TTMLClient"]
+__all__ = ["TTMLSender", "TTMLClient"]
 
 template = True
