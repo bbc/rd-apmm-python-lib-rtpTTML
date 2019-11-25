@@ -3,7 +3,7 @@ from uuid import uuid4, UUID
 import asyncio
 import argparse
 from lxml import etree
-from rtpTTML import TTMLServer  # type: ignore
+from rtpTTML import TTMLTransmitter  # type: ignore
 
 
 class DocGen:
@@ -133,14 +133,14 @@ class Transmitter:
     def __init__(self, address: str, port: int):
         self.flowID = uuid4()
         self.pGen = DocGen(self.flowID)
-        self.server = TTMLServer(address, port)
+        self.transmitter = TTMLTransmitter(address, port)
 
     async def run(self) -> None:
         while True:
             now = datetime.now()
-            doc = self.pGen.generateDoc(self.server.nextSeqNum, str(now))
+            doc = self.pGen.generateDoc(self.transmitter.nextSeqNum, str(now))
 
-            self.server.sendDoc(doc, now)
+            self.transmitter.sendDoc(doc, now)
             await asyncio.sleep(1)
 
 

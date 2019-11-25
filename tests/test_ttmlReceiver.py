@@ -9,11 +9,11 @@
 from unittest import TestCase, mock
 from hypothesis import given, assume, strategies as st
 
-from rtpTTML.ttmlClient import MAX_SEQ_NUM  # type: ignore
-from rtpTTML import TTMLClient  # type: ignore
+from rtpTTML.ttmlReceiver import MAX_SEQ_NUM  # type: ignore
+from rtpTTML import TTMLReceiver  # type: ignore
 
 
-class TestTTMLClient (TestCase):
+class TestTTMLReceiver (TestCase):
     def callback(self, doc, timestamp):
         self.callbackCallCount += 1
         self.callbackValues.append((doc, timestamp))
@@ -22,7 +22,7 @@ class TestTTMLClient (TestCase):
     def setUp(self, mockSocket):
         self.callbackCallCount = 0
         self.callbackValues = []
-        self.client = TTMLClient(0, self.callback)
+        self.receiver = TTMLReceiver(0, self.callback)
 
     def setup_example(self):
         self.setUp()
@@ -45,7 +45,7 @@ class TestTTMLClient (TestCase):
             [msnPlus1, 2, msnPlus1 + 2]]
 
         for test in tests:
-            ret = self.client._unloopSeqNum(test[0], test[1])
+            ret = self.receiver._unloopSeqNum(test[0], test[1])
             self.assertEqual(ret, test[2], msg="Failing test: {}".format(test))
 
     @given(
@@ -56,7 +56,7 @@ class TestTTMLClient (TestCase):
 
         for keyOffset in range(10):
             if keepList[keyOffset]:
-                self.client._fragments[startKey + keyOffset] = None
+                self.receiver._fragments[startKey + keyOffset] = None
 
         complete = True
 
@@ -68,10 +68,10 @@ class TestTTMLClient (TestCase):
                 if seenFalse:
                     complete = False
 
-        self.assertEqual(complete, self.client._keysComplete())
+        self.assertEqual(complete, self.receiver._keysComplete())
 
     def test_keysCompleteEmpty(self):
-        self.assertFalse(self.client._keysComplete())
+        self.assertFalse(self.receiver._keysComplete())
 
     @given(
         st.integers(min_value=0, max_value=MAX_SEQ_NUM),
@@ -81,16 +81,16 @@ class TestTTMLClient (TestCase):
 
         for x in range(len(docFragments)):
             expectedDoc += docFragments[x]
-            self.client._fragments[startKey+x] = docFragments[x]
+            self.receiver._fragments[startKey+x] = docFragments[x]
 
-        self.client._processFragments()
+        self.receiver._processFragments()
 
-        self.assertEqual(0, len(self.client._fragments))
+        self.assertEqual(0, len(self.receiver._fragments))
         self.assertEqual(1, self.callbackCallCount)
 
         self.assertEqual(expectedDoc, self.callbackValues[0][0])
 
     def test_processFragmentsEmpty(self):
-        self.client._processFragments()
+        self.receiver._processFragments()
 
         self.assertEqual(0, self.callbackCallCount)

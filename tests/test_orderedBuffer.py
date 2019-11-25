@@ -10,7 +10,7 @@ from unittest import TestCase
 from hypothesis import given, strategies as st
 from rtp import RTP  # type: ignore
 
-from rtpTTML.ttmlClient import OrderedBuffer, MAX_SEQ_NUM
+from rtpTTML.ttmlReceiver import OrderedBuffer, MAX_SEQ_NUM
 
 
 class TestOrderedBuffer (TestCase):

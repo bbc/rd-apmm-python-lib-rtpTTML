@@ -8,29 +8,29 @@ This library is very minimal. It takes documents as strings, encodes them as an 
 This library makes use of [RTP](https://github.com/bbc/rd-apmm-python-lib-rtp) and [rtpPayload_ttml](https://github.com/bbc/rd-apmm-python-lib-rtpPayload_ttml) for encoding/decoding the payload bitstreams.
 
 ## Example usage
-There are fully functional server and client examples in the [examples directory](https://github.com/bbc/rd-apmm-python-lib-rtpTTML/tree/master/examples). The bare minimum usage is as follows.
+There are fully functional transmitter and receiver examples in the [examples directory](https://github.com/bbc/rd-apmm-python-lib-rtpTTML/tree/master/examples). The bare minimum usage is as follows.
 
 ```python
-from rtpTTML import TTMLClient
+from rtpTTML import TTMLReceiver
 
 
 def processDoc(doc, timestamp):
     print("{}\n".format(doc))
 
 port = 12345
-client = TTMLClient(port, processDoc)
+client = TTMLReceiver(port, processDoc)
 client.run()
 ```
 
 ```python
 from time import sleep
 from datetime import datetime
-from rtpTTML import TTMLServer
+from rtpTTML import TTMLTransmitter
 
 
 address = "127.0.0.1"
 port = 12345
-server = TTMLServer(address, port)
+server = TTMLTransmitter(address, port)
 
 while True:
     now = datetime.now()

@@ -10,13 +10,13 @@ from unittest import TestCase, mock
 from hypothesis import given, strategies as st
 from rtpPayload_ttml import RTPPayload_TTML  # type: ignore
 
-from rtpTTML import TTMLServer  # type: ignore
+from rtpTTML import TTMLTransmitter  # type: ignore
 
 
-class TestTTMLServer (TestCase):
+class TestTTMLTransmitter (TestCase):
     @mock.patch("socket.socket")
     def setUp(self, mockSocket):
-        self.server = TTMLServer("", 0)
+        self.transmitter = TTMLTransmitter("", 0)
 
     def setup_example(self):
         self.setUp()
@@ -25,7 +25,7 @@ class TestTTMLServer (TestCase):
         st.text(min_size=1),
         st.integers(min_value=4))
     def test_fragmentDoc(self, doc, maxLen):
-        fragments = self.server._fragmentDoc(doc, maxLen)
+        fragments = self.transmitter._fragmentDoc(doc, maxLen)
 
         reconstructedDoc = ""
         for fragment in fragments:
@@ -36,7 +36,7 @@ class TestTTMLServer (TestCase):
 
     @given(st.datetimes())
     def test_datetimeToRTPTs(self, time):
-        rtpTs = self.server._datetimeToRTPTs(time)
+        rtpTs = self.transmitter._datetimeToRTPTs(time)
 
         self.assertIsInstance(rtpTs, int)
         self.assertGreaterEqual(rtpTs, 0)
@@ -47,9 +47,9 @@ class TestTTMLServer (TestCase):
         st.integers(min_value=0, max_value=(2**32)-1),
         st.booleans())
     def test_generateRTPPacket(self, doc, time, marker):
-        expectedSeqNum = self.server.nextSeqNum
+        expectedSeqNum = self.transmitter.nextSeqNum
 
-        packet = self.server._generateRTPPacket(doc, time, marker)
+        packet = self.transmitter._generateRTPPacket(doc, time, marker)
         payload = RTPPayload_TTML().fromBytearray(packet.payload)
 
         self.assertEqual(packet.timestamp, time)
@@ -57,4 +57,4 @@ class TestTTMLServer (TestCase):
         self.assertEqual(packet.marker, marker)
         self.assertEqual(payload.userDataWords, doc)
 
-        self.assertEqual(self.server.nextSeqNum, expectedSeqNum + 1)
+        self.assertEqual(self.transmitter.nextSeqNum, expectedSeqNum + 1)

@@ -8,7 +8,7 @@ from rtpPayload_ttml import RTPPayload_TTML  # type: ignore
 EPOCH = datetime.utcfromtimestamp(0)
 
 
-class TTMLServer:
+class TTMLTransmitter:
     def __init__(
        self,
        address: str,
