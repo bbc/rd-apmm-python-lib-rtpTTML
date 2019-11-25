@@ -127,21 +127,23 @@ class TestOrderedBuffer (TestCase):
                  min_size=2, max_size=2, unique=True))
     def test_pushGetSwapped(self, startKey, swap):
         self.assertFalse(self.buffer.available())
-        expectedList = {}
+        expectedList = []
         receivedList = []
 
-        keyOffsets = list(range(10))
-        keyOffsets[swap[0]], keyOffsets[swap[1]] = (
-            keyOffsets[swap[1]], keyOffsets[swap[0]])
-
-        for x in keyOffsets:
+        for x in list(range(10)):
             seqNum = (startKey + x) % (MAX_SEQ_NUM + 1)
             packet = RTP(sequenceNumber=seqNum)
-            expectedList[x] = packet
-            ret = self.buffer.pushGet(seqNum, packet)
+            expectedList.append(packet)
+
+        swappedPackets = expectedList.copy()
+        swappedPackets[swap[0]], swappedPackets[swap[1]] = (
+            swappedPackets[swap[1]], swappedPackets[swap[0]])
+
+        for packet in swappedPackets:
+            ret = self.buffer.pushGet(packet.sequenceNumber, packet)
             receivedList += ret
 
         self.assertFalse(self.buffer.available())
 
         self.assertEqual(len(expectedList), len(receivedList))
-        self.assertEqual(list(expectedList.values()), receivedList)
+        self.assertEqual(expectedList, receivedList)
