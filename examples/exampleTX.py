@@ -7,7 +7,7 @@ from rtpTTML import TTMLTransmitter  # type: ignore
 
 
 class DocGen:
-    def __init__(self, flowID: UUID):
+    def __init__(self, flowID: UUID) -> None:
         self.flowID = str(flowID)
 
     def generateDoc(self, seqNum: int, text: str) -> str:
