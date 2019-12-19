@@ -129,18 +129,15 @@ class DocGen:
         return etree.tostring(tt, encoding="unicode")
 
 
-class Transmitter:
-    def __init__(self, address: str, port: int):
-        self.flowID = uuid4()
-        self.pGen = DocGen(self.flowID)
-        self.transmitter = TTMLTransmitter(address, port)
-
-    async def run(self) -> None:
+async def amain(address: str, port: int) -> None:
+    flowid = uuid4()
+    docGen = DocGen(flowid)
+    async with TTMLTransmitter(address, port) as transmitter:
         while True:
             now = datetime.now()
-            doc = self.pGen.generateDoc(self.transmitter.nextSeqNum, str(now))
+            doc = docGen.generateDoc(transmitter.nextSeqNum, str(now))
 
-            self.transmitter.sendDoc(doc, now)
+            await transmitter.sendDoc(doc, now)
             await asyncio.sleep(1)
 
 
@@ -161,8 +158,7 @@ if __name__ == "__main__":
         required=True)
     args = parser.parse_args()
 
-    tx = Transmitter(args.ip_address, args.port)
-
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(tx.run())
+    loop.create_task(amain(args.ip_address, args.port))
+    loop.run_forever()
     loop.close()
