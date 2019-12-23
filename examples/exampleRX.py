@@ -4,14 +4,17 @@ from rtpTTML import TTMLReceiver  # type: ignore
 
 
 class Receiver:
-    def __init__(self, port: int):
+    def __init__(self, port: int) -> None:
         self.receiver = TTMLReceiver(port, self.processDoc)
 
     def processDoc(self, doc: str, timestamp: int) -> None:
         print("{}\n".format(doc))
 
+    def stop(self) -> None:
+        self.receiver.async_close()
+
     async def run(self) -> None:
-        self.receiver.run()
+        await self.receiver.async_run()
 
 
 if __name__ == "__main__":
@@ -29,4 +32,9 @@ if __name__ == "__main__":
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(rx.run())
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
+    rx.stop()
     loop.close()
