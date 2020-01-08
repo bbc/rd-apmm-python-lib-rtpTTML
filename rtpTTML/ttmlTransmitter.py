@@ -34,12 +34,13 @@ class AsyncTTMLTransmitterConnection (object):
     async def _close(self) -> None:
         if self._transport is not None:
             self._transport.close()
+            self._transport = None
 
     async def sendDoc(self, doc: str, time: datetime) -> None:
         if self._transport is None:
             return
 
-        for packet in self._parent._packetise_doc(doc, time):
+        for packet in self._parent._packetiseDoc(doc, time):
             self._transport.sendto(packet.toBytes())
 
 
@@ -62,7 +63,8 @@ class SyncTTMLTransmitterConnection (object):
     def sendDoc(self, doc: str, time: datetime) -> None:
         if self._socket is None:
             return
-        for packet in self._parent._packetise_doc(doc, time):
+
+        for packet in self._parent._packetiseDoc(doc, time):
             self._socket.sendto(
                 packet.toBytes(),
                 (self._parent._address, self._parent._port))
@@ -123,6 +125,9 @@ class TTMLTransmitter:
         fragments = []
         thisStart = 0
 
+        if doc == "":
+            return []
+
         while True:
             thisEnd = thisStart + maxLen
             while len(bytearray(doc[thisStart:thisEnd], "utf-8")) > maxLen:
@@ -156,7 +161,7 @@ class TTMLTransmitter:
 
         return packet
 
-    def _packetise_doc(self, doc, time):
+    def _packetiseDoc(self, doc, time):
         packets = []
 
         rtpTs = self._datetimeToRTPTs(time)
