@@ -51,22 +51,10 @@ package_names = packages.keys()
 
 # This is where you list packages which are required
 packages_required = [
-    "six",
-    "flask",
     "mypy",
     "lxml",
     "rtp",
     "rtpPayload_ttml"
-]
-
-# This is where you list locations for packages not
-# available from pip. Each entry must be of the form:
-#  <url>#egg=<pkgname>=<version>
-# eg. https://github.com/bbc/rd-apmm-python-lib-nmos-common#egg=nmoscommon=0.1.0
-deps_required = [
-  "https://github.com/bbc/rd-apmm-python-lib-rtpPayload_ttml#"
-  "egg=rtpPayload_ttml=0.0.0",
-  "https://github.com/bbc/rd-apmm-python-lib-rtp#egg=rtp=0.0.0"
 ]
 
 setup(name=name,

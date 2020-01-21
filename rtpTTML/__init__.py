@@ -7,12 +7,12 @@
 # not have permission to reproduce it.
 
 """\
-Template for developing other python libraries.
+High level python library for transmitting/receiving TTML over RTP.
 """
 
-from .ttmlServer import TTMLServer
-from .ttmlClient import TTMLClient
+from .ttmlTransmitter import TTMLTransmitter
+from .ttmlReceiver import TTMLReceiver
 
-__all__ = ["TTMLServer", "TTMLClient"]
+__all__ = ["TTMLTransmitter", "TTMLReceiver"]
 
 template = True

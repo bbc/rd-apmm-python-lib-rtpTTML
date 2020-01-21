@@ -67,7 +67,7 @@ class OrderedBuffer:
         return self.get()
 
 
-class TTMLClient:
+class TTMLReceiver:
     def __init__(
        self,
        port: int,

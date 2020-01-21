@@ -3,11 +3,11 @@ from uuid import uuid4, UUID
 import asyncio
 import argparse
 from lxml import etree
-from rtpTTML import TTMLServer  # type: ignore
+from rtpTTML import TTMLTransmitter  # type: ignore
 
 
 class DocGen:
-    def __init__(self, flowID: UUID):
+    def __init__(self, flowID: UUID) -> None:
         self.flowID = str(flowID)
 
     def generateDoc(self, seqNum: int, text: str) -> str:
@@ -25,12 +25,8 @@ class DocGen:
             bNSMAP["tt"] + "tt",
             nsmap=NSMAP,
             attrib={
-                bNSMAP["xmlns"] + "lang": "en",
-                bNSMAP["ttp"] + "timeBase": "clock",
-                bNSMAP["ttp"] + "clockMode": "utc",
+                bNSMAP["ttp"] + "timeBase": "media",
                 bNSMAP["ttp"] + "cellResolution": "50 30",
-                bNSMAP["ttp"] + "dropMode": "nonDrop",
-                bNSMAP["ttp"] + "markerMode": "discontinuous",
                 bNSMAP["tts"] + "extent": "1920px 1080px",
                 bNSMAP["ebuttm"] + "sequenceIdentifier": self.flowID,
                 bNSMAP["ebuttm"] + "sequenceNumber": str(seqNum)})
@@ -45,22 +41,6 @@ class DocGen:
             bNSMAP["ebuttm"] + "documentEbuttVersion")
         ebuttVer.text = "v1.0"
 
-        numSubs = etree.SubElement(
-            docMetadata,
-            bNSMAP["ebuttm"] + "documentTotalNumberOfSubtitles")
-        numSubs.text = "1"
-
-        maxChar = etree.SubElement(
-            docMetadata,
-            bNSMAP["ebuttm"] +
-            "documentMaximumNumberOfDisplayableCharacterInAnyRow")
-        maxChar.text = "40"
-
-        country = etree.SubElement(
-            docMetadata,
-            bNSMAP["ebuttm"] + "documentCountryOfOrigin")
-        country.text = "gb"
-
         styling = etree.SubElement(head, bNSMAP["tt"] + "styling")
 
         etree.SubElement(
@@ -69,30 +49,10 @@ class DocGen:
             attrib={
                 bNSMAP["xmlns"] + "id": "defaultStyle",
                 bNSMAP["tts"] + "fontFamily": "monospaceSansSerif",
-                bNSMAP["tts"] + "fontSize": "1c 1c",
-                bNSMAP["tts"] + "lineHeight": "normal",
+                bNSMAP["tts"] + "fontSize": "1c 2c",
                 bNSMAP["tts"] + "textAlign": "center",
                 bNSMAP["tts"] + "color": "white",
-                bNSMAP["tts"] + "backgroundColor": "transparent",
-                bNSMAP["tts"] + "fontStyle": "normal",
-                bNSMAP["tts"] + "fontWeight": "normal",
-                bNSMAP["tts"] + "textDecoration": "none"})
-
-        etree.SubElement(
-            styling,
-            bNSMAP["tt"] + "style",
-            attrib={
-                bNSMAP["xmlns"] + "id": "whiteOnBlack",
-                bNSMAP["tts"] + "color": "white",
-                bNSMAP["tts"] + "backgroundColor": "black",
-                bNSMAP["tts"] + "fontSize": "1c 2c"})
-
-        etree.SubElement(
-            styling,
-            bNSMAP["tt"] + "style",
-            attrib={
-                bNSMAP["xmlns"] + "id": "textCenter",
-                bNSMAP["tts"] + "textAlign": "center"})
+                bNSMAP["tts"] + "backgroundColor": "black"})
 
         layout = etree.SubElement(head, bNSMAP["tt"] + "layout")
         etree.SubElement(
@@ -102,9 +62,7 @@ class DocGen:
                 bNSMAP["xmlns"] + "id": "bottom",
                 bNSMAP["tts"] + "origin": "10%% 10%%",
                 bNSMAP["tts"] + "extent": "80%% 80%%",
-                bNSMAP["tts"] + "padding": "0c",
-                bNSMAP["tts"] + "displayAlign": "after",
-                bNSMAP["tts"] + "writingMode": "lrtb"})
+                bNSMAP["tts"] + "displayAlign": "after"})
 
         body = etree.SubElement(
             tt, bNSMAP["tt"] + "body", attrib={"dur": "00:00:10"})
@@ -116,32 +74,37 @@ class DocGen:
             div,
             bNSMAP["tt"] + "p",
             attrib={
-                bNSMAP["xmlns"] + "id": "sub2",
-                "style": "textCenter",
+                bNSMAP["xmlns"] + "id": "sub",
                 "region": "bottom"})
 
         span = etree.SubElement(
             p,
-            bNSMAP["tt"] + "span",
-            attrib={"style": "whiteOnBlack"})
+            bNSMAP["tt"] + "span")
         span.text = text
 
         return etree.tostring(tt, encoding="unicode")
 
 
 class Transmitter:
-    def __init__(self, address: str, port: int):
-        self.flowID = uuid4()
-        self.pGen = DocGen(self.flowID)
-        self.server = TTMLServer(address, port)
+    def __init__(self, address: str, port: int) -> None:
+        self._address = address
+        self._port = port
+        flowid = uuid4()
+        self._docGen = DocGen(flowid)
+        self._running = False
+
+    def stop(self) -> None:
+        self._running = False
 
     async def run(self) -> None:
-        while True:
-            now = datetime.now()
-            doc = self.pGen.generateDoc(self.server.nextSeqNum, str(now))
+        self._running = True
+        async with TTMLTransmitter(self._address, self._port) as transmitter:
+            while self._running:
+                now = datetime.now()
+                doc = self._docGen.generateDoc(transmitter.nextSeqNum, str(now))
 
-            self.server.sendDoc(doc, now)
-            await asyncio.sleep(1)
+                await transmitter.sendDoc(doc, now)
+                await asyncio.sleep(1)
 
 
 if __name__ == "__main__":
@@ -164,5 +127,11 @@ if __name__ == "__main__":
     tx = Transmitter(args.ip_address, args.port)
 
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(tx.run())
+    task = loop.create_task(tx.run())
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
+    tx.stop()
+    loop.run_until_complete(task)
     loop.close()

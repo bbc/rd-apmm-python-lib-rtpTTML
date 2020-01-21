@@ -1,17 +1,17 @@
 import asyncio
 import argparse
-from rtpTTML import TTMLClient  # type: ignore
+from rtpTTML import TTMLReceiver  # type: ignore
 
 
 class Receiver:
     def __init__(self, port: int):
-        self.client = TTMLClient(port, self.processDoc)
+        self.receiver = TTMLReceiver(port, self.processDoc)
 
     def processDoc(self, doc: str, timestamp: int) -> None:
         print("{}\n".format(doc))
 
     async def run(self) -> None:
-        self.client.run()
+        self.receiver.run()
 
 
 if __name__ == "__main__":
