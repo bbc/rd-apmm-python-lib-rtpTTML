@@ -27,7 +27,7 @@ class AsyncTTMLTransmitterConnection (object):
         self._transport, self._protocol = cast(
             Tuple[asyncio.DatagramTransport, asyncio.DatagramProtocol],
             await loop.create_datagram_endpoint(
-                lambda: asyncio.DatagramProtocol(),
+                asyncio.DatagramProtocol,
                 remote_addr=(self._parent._address, self._parent._port),
                 family=socket.AF_INET))
 

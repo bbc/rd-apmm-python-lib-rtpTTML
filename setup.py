@@ -51,7 +51,6 @@ package_names = packages.keys()
 
 # This is where you list packages which are required
 packages_required = [
-    "six",
     "mypy",
     "lxml",
     "rtp",

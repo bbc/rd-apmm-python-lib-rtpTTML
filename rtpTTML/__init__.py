@@ -7,7 +7,7 @@
 # not have permission to reproduce it.
 
 """\
-Template for developing other python libraries.
+High level python library for transmitting/receiving TTML over RTP.
 """
 
 from .ttmlTransmitter import TTMLTransmitter
