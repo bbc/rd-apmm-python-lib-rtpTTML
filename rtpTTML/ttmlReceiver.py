@@ -1,5 +1,7 @@
-from typing import List, Callable, Union, Dict
+from __future__ import annotations
+from typing import List, Callable, Union, Dict, Optional, Tuple, cast
 import socket
+import asyncio
 from collections import OrderedDict
 from rtp import RTP  # type: ignore
 from rtpPayload_ttml import RTPPayload_TTML  # type: ignore
@@ -8,7 +10,7 @@ MAX_SEQ_NUM = (2**16) - 1
 
 
 class OrderedBuffer:
-    def __init__(self, maxSize: int = 5, maxKey: int = MAX_SEQ_NUM):
+    def __init__(self, maxSize: int = 5, maxKey: int = MAX_SEQ_NUM) -> None:
         self._initialised = False
         self._maxSize = maxSize
         self._maxKey = maxKey
@@ -67,17 +69,29 @@ class OrderedBuffer:
         return self.get()
 
 
+class TTMLDatagramProtocol(asyncio.DatagramProtocol):
+    def __init__(self, parent: TTMLReceiver) -> None:
+        self._parent = parent
+        super().__init__()
+
+    def datagram_received(self, data, addr) -> None:
+        self._parent._processData(data)
+
+
 class TTMLReceiver:
     def __init__(
        self,
        port: int,
        callback: Callable[[str, int], None],
        recvBufSize: int = None,
-       timeout: Union[float, None] = None):
-        self._fragments = OrderedDict()  # type: Dict[int, RTP]
+       timeout: Union[float, None] = None) -> None:
+        self._fragments: Dict[int, RTP] = OrderedDict()
         self._curTimestamp = 0
         self._port = port
         self._callback = callback
+        self._socket: Optional[socket.socket]
+        self._transport: Optional[asyncio.DatagramTransport]
+        self._protocol: Optional[TTMLDatagramProtocol]
 
         if recvBufSize is None:
             self._recvBufSize = 2**16
@@ -86,15 +100,10 @@ class TTMLReceiver:
 
         self._packetBuff = OrderedBuffer()
 
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
         if timeout is None:
-            # Set the timeout value of the socket to 30sec
-            self._socket.settimeout(30)
+            self._timeout = 30.0
         else:
-            self._socket.settimeout(timeout)
-
-        self._socket.bind(('', self._port))
+            self._timeout = timeout
 
     def _unloopSeqNum(self, prevNum: int, thisNum: int) -> int:
         loopOffset = MAX_SEQ_NUM + 1
@@ -161,17 +170,39 @@ class TTMLReceiver:
         payload = RTPPayload_TTML().fromBytearray(packet.payload)
         self._fragments[seqNumber] = payload.userDataWords
 
+    def _processData(self, data: bytes) -> None:
+        newPacket = RTP().fromBytes(data)
+
+        packets = self._packetBuff.pushGet(
+            newPacket.sequenceNumber, newPacket)
+
+        for packet in packets:
+            self._processPacket(packet)
+
+            if packet.marker:
+                self._processFragments()
+
     def run(self) -> None:
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._socket.settimeout(self._timeout)
+        self._socket.bind(('', self._port))
+
         while True:
             data = self._socket.recv(self._recvBufSize)
+            self._processData(data)
 
-            newPacket = RTP().fromBytes(data)
+    def async_close(self) -> None:
+        if self._transport is not None:
+            self._transport.close()
 
-            packets = self._packetBuff.pushGet(
-                newPacket.sequenceNumber, newPacket)
+    async def async_run(self) -> None:
+        loop = asyncio.get_event_loop()
 
-            for packet in packets:
-                self._processPacket(packet)
-
-                if packet.marker:
-                    self._processFragments()
+        # Typeshed incorrectly assumes Base Transport and Protocol types
+        # Typeshed also incorrectly says local_addr's address can't be None
+        self._transport, self._protocol = cast(
+            Tuple[asyncio.DatagramTransport, TTMLDatagramProtocol],
+            await loop.create_datagram_endpoint(
+                lambda: TTMLDatagramProtocol(self),
+                local_addr=(None, self._port),  # type: ignore
+                family=socket.AF_INET))
