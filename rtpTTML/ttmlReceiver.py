@@ -15,7 +15,7 @@ class OrderedBuffer:
         self._maxSize = maxSize
         self._maxKey = maxKey
         self._mostRecentKey = 0
-        self._buffer = {}  # type: Dict[int, RTP]
+        self._buffer: Dict[int, RTP] = {}
 
     def _nextKey(self) -> int:
         nextKey = self._mostRecentKey + 1

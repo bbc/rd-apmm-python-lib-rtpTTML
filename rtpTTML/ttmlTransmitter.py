@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, List, Optional, Tuple, cast
+from typing import List, Optional, Tuple, cast
 from datetime import datetime
 import socket
 import asyncio
@@ -78,7 +78,7 @@ class TTMLTransmitter:
        maxFragmentSize: int = 1200,
        payloadType: PayloadType = PayloadType.DYNAMIC_96,
        initialSeqNum: int = None,
-       tsOffset: Union[int, None] = None) -> None:
+       tsOffset: Optional[int] = None) -> None:
         self._address = address
         self._port = port
         self._maxFragmentSize = maxFragmentSize
