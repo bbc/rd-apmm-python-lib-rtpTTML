@@ -78,11 +78,13 @@ class TTMLTransmitter:
        maxFragmentSize: int = 1200,
        payloadType: PayloadType = PayloadType.DYNAMIC_96,
        initialSeqNum: int = None,
-       tsOffset: Optional[int] = None) -> None:
+       tsOffset: Optional[int] = None,
+       encoding: str = "utf-8") -> None:
         self._address = address
         self._port = port
         self._maxFragmentSize = maxFragmentSize
         self._payloadType = payloadType
+        self._encoding = encoding
 
         if initialSeqNum is not None:
             self._nextSeqNum = initialSeqNum
@@ -130,7 +132,8 @@ class TTMLTransmitter:
 
         while True:
             thisEnd = thisStart + maxLen
-            while len(bytearray(doc[thisStart:thisEnd], "utf-8")) > maxLen:
+            while len(bytearray(doc[thisStart:thisEnd],
+                      self._encoding)) > maxLen:
                 thisEnd -= 1
 
             fragments.append(doc[thisStart:thisEnd])
@@ -153,7 +156,8 @@ class TTMLTransmitter:
         packet = RTP(
             timestamp=time,
             sequenceNumber=self._nextSeqNum,
-            payload=RTPPayload_TTML(userDataWords=doc).toBytearray(),
+            payload=RTPPayload_TTML(
+                userDataWords=doc, encoding=self._encoding).toBytearray(),
             marker=marker,
             payloadType=self._payloadType
         )

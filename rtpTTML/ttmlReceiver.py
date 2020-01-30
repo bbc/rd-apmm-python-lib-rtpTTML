@@ -84,11 +84,13 @@ class TTMLReceiver:
        port: int,
        callback: Callable[[str, int], None],
        recvBufSize: int = None,
-       timeout: Union[float, None] = None) -> None:
+       timeout: Union[float, None] = None,
+       encoding: str = "utf-8") -> None:
         self._fragments: Dict[int, RTP] = OrderedDict()
         self._curTimestamp = 0
         self._port = port
         self._callback = callback
+        self._encoding = encoding
         self._socket: Optional[socket.socket]
         self._transport: Optional[asyncio.DatagramTransport]
         self._protocol: Optional[TTMLDatagramProtocol]
@@ -167,7 +169,8 @@ class TTMLReceiver:
             seqNumber = self._unloopSeqNum(
                 max(self._fragments), packet.sequenceNumber)
 
-        payload = RTPPayload_TTML().fromBytearray(packet.payload)
+        payload = RTPPayload_TTML(encoding=self._encoding).fromBytearray(
+            packet.payload)
         self._fragments[seqNumber] = payload.userDataWords
 
     def _processData(self, data: bytes) -> None:

@@ -11,6 +11,8 @@ from hypothesis import given, assume, strategies as st
 
 from rtpTTML.ttmlReceiver import MAX_SEQ_NUM  # type: ignore
 from rtpTTML import TTMLReceiver  # type: ignore
+from rtp import RTP  # type: ignore
+from rtpPayload_ttml import RTPPayload_TTML, SUPPORTED_ENCODINGS  # type: ignore
 
 
 class TestTTMLReceiver (TestCase):
@@ -94,3 +96,24 @@ class TestTTMLReceiver (TestCase):
         self.receiver._processFragments()
 
         self.assertEqual(0, self.callbackCallCount)
+
+    @given(st.tuples(
+        st.text(),
+        st.sampled_from(SUPPORTED_ENCODINGS)).filter(
+            lambda x: len(bytearray(x[0], x[1])) < 2**16))
+    def test_processData(self, data):
+        doc, encoding = data
+        payload = RTPPayload_TTML(userDataWords=doc, encoding=encoding)
+        packet = RTP(payload=payload)
+        packetBytes = packet.to_bytes()
+
+        thisReceiver = TTMLReceiver(0, self.callback, encoding=encoding)
+
+        retPayload = RTPPayload_TTML(encoding=encoding)
+
+        with mock.patch(
+           "rtpPayload_ttml.RTPPayload_TTML",
+           return_value=retPayload) as mockTTML:
+            thisReceiver._processData(packetBytes)
+
+            mockTTML.assert_called_with(encoding=encoding)
