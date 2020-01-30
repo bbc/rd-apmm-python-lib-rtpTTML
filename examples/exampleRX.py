@@ -4,8 +4,8 @@ from rtpTTML import TTMLReceiver  # type: ignore
 
 
 class Receiver:
-    def __init__(self, port: int) -> None:
-        self.receiver = TTMLReceiver(port, self.processDoc)
+    def __init__(self, port: int, encoding: str) -> None:
+        self.receiver = TTMLReceiver(port, self.processDoc, encoding=encoding)
 
     def processDoc(self, doc: str, timestamp: int) -> None:
         print("{}\n".format(doc))
@@ -26,9 +26,16 @@ if __name__ == "__main__":
         type=int,
         help='receiver port',
         required=True)
+    parser.add_argument(
+        '-e',
+        '--encoding',
+        type=str,
+        default="utf-8",
+        help='Character encoding of document (default: utf-8)',
+        required=False)
     args = parser.parse_args()
 
-    rx = Receiver(args.port)
+    rx = Receiver(args.port, encoding=args.encoding)
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(rx.run())

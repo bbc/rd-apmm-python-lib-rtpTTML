@@ -86,9 +86,10 @@ class DocGen:
 
 
 class Transmitter:
-    def __init__(self, address: str, port: int) -> None:
+    def __init__(self, address: str, port: int, encoding: str) -> None:
         self._address = address
         self._port = port
+        self._encoding = encoding
         flowid = uuid4()
         self._docGen = DocGen(flowid)
         self._running = False
@@ -98,7 +99,8 @@ class Transmitter:
 
     async def run(self) -> None:
         self._running = True
-        async with TTMLTransmitter(self._address, self._port) as transmitter:
+        async with TTMLTransmitter(
+           self._address, self._port, encoding=self._encoding) as transmitter:
             while self._running:
                 now = datetime.now()
                 doc = self._docGen.generateDoc(transmitter.nextSeqNum, str(now))
@@ -122,9 +124,16 @@ if __name__ == "__main__":
         type=int,
         help='receiver port',
         required=True)
+    parser.add_argument(
+        '-e',
+        '--encoding',
+        type=str,
+        default="utf-8",
+        help='Character encoding of document (default: utf-8)',
+        required=False)
     args = parser.parse_args()
 
-    tx = Transmitter(args.ip_address, args.port)
+    tx = Transmitter(args.ip_address, args.port, args.encoding)
 
     loop = asyncio.get_event_loop()
     task = loop.create_task(tx.run())
