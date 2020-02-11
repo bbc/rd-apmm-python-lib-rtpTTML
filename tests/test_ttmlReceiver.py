@@ -12,7 +12,8 @@ from hypothesis import given, assume, strategies as st
 from rtpTTML.ttmlReceiver import MAX_SEQ_NUM  # type: ignore
 from rtpTTML import TTMLReceiver  # type: ignore
 from rtp import RTP  # type: ignore
-from rtpPayload_ttml import RTPPayload_TTML, SUPPORTED_ENCODINGS  # type: ignore
+from rtpPayload_ttml import (  # type: ignore
+    RTPPayload_TTML, SUPPORTED_ENCODINGS, utfEncode)
 
 
 class TestTTMLReceiver (TestCase):
@@ -98,22 +99,44 @@ class TestTTMLReceiver (TestCase):
         self.assertEqual(0, self.callbackCallCount)
 
     @given(st.tuples(
-        st.text(),
-        st.sampled_from(SUPPORTED_ENCODINGS)).filter(
-            lambda x: len(bytearray(x[0], x[1])) < 2**16))
-    def test_processData(self, data):
-        doc, encoding = data
-        payload = RTPPayload_TTML(userDataWords=doc, encoding=encoding)
-        packet = RTP(payload=payload)
-        packetBytes = packet.to_bytes()
+        st.text(min_size=1),
+        st.sampled_from(SUPPORTED_ENCODINGS),
+        st.booleans()).filter(
+            lambda x: len(utfEncode(x[0], x[1], x[2])) < 2**16))
+    def test_processPacket(self, data):
+        doc, encoding, bom = data
 
-        thisReceiver = TTMLReceiver(0, self.callback, encoding=encoding)
-
-        retPayload = RTPPayload_TTML(encoding=encoding)
+        payload = RTPPayload_TTML(
+            userDataWords=doc, encoding=encoding, bom=bom).toBytearray()
+        packet = RTP(payload=payload, marker=True)
 
         with mock.patch(
-           "rtpPayload_ttml.RTPPayload_TTML",
-           return_value=retPayload) as mockTTML:
+           "rtpTTML.ttmlReceiver.RTPPayload_TTML") as mockTTML:
+
+            thisReceiver = TTMLReceiver(
+                0, self.callback, encoding=encoding, bom=bom)
+
+            thisReceiver._processPacket(packet)
+
+            mockTTML.assert_called_once_with(encoding=encoding, bom=bom)
+
+    @given(st.tuples(
+        st.text(min_size=1),
+        st.sampled_from(SUPPORTED_ENCODINGS),
+        st.booleans()).filter(
+            lambda x: len(utfEncode(x[0], x[1], x[2])) < 2**16))
+    def test_processData(self, data):
+        doc, encoding, bom = data
+
+        payload = RTPPayload_TTML(
+            userDataWords=doc, encoding=encoding, bom=bom).toBytearray()
+        packet = RTP(payload=payload, marker=True)
+        packetBytes = packet.toBytes()
+        with mock.patch(
+           "rtpTTML.ttmlReceiver.RTPPayload_TTML") as mockTTML:
+            thisReceiver = TTMLReceiver(
+                0, self.callback, encoding=encoding, bom=bom)
+
             thisReceiver._processData(packetBytes)
 
-            mockTTML.assert_called_with(encoding=encoding)
+            mockTTML.assert_called_once_with(encoding=encoding, bom=bom)

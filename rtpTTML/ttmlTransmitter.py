@@ -5,7 +5,7 @@ import socket
 import asyncio
 from random import randrange
 from rtp import RTP, PayloadType  # type: ignore
-from rtpPayload_ttml import RTPPayload_TTML  # type: ignore
+from rtpPayload_ttml import RTPPayload_TTML, utfEncode  # type: ignore
 
 EPOCH = datetime.utcfromtimestamp(0)
 
@@ -79,12 +79,14 @@ class TTMLTransmitter:
        payloadType: PayloadType = PayloadType.DYNAMIC_96,
        initialSeqNum: int = None,
        tsOffset: Optional[int] = None,
-       encoding: str = "utf-8") -> None:
+       encoding: str = "UTF-8",
+       bom: bool = False) -> None:
         self._address = address
         self._port = port
         self._maxFragmentSize = maxFragmentSize
         self._payloadType = payloadType
         self._encoding = encoding
+        self._bom = bom
 
         if initialSeqNum is not None:
             self._nextSeqNum = initialSeqNum
@@ -132,8 +134,9 @@ class TTMLTransmitter:
 
         while True:
             thisEnd = thisStart + maxLen
-            while len(bytearray(doc[thisStart:thisEnd],
-                      self._encoding)) > maxLen:
+            while len(utfEncode(
+                    doc[thisStart:thisEnd], self._encoding, self._bom
+               )) > maxLen:
                 thisEnd -= 1
 
             fragments.append(doc[thisStart:thisEnd])
@@ -157,7 +160,8 @@ class TTMLTransmitter:
             timestamp=time,
             sequenceNumber=self._nextSeqNum,
             payload=RTPPayload_TTML(
-                userDataWords=doc, encoding=self._encoding).toBytearray(),
+                    userDataWords=doc, encoding=self._encoding, bom=self._bom
+                ).toBytearray(),
             marker=marker,
             payloadType=self._payloadType
         )

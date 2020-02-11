@@ -30,8 +30,9 @@ if __name__ == "__main__":
         '-e',
         '--encoding',
         type=str,
-        default="utf-8",
-        help='Character encoding of document (default: utf-8)',
+        default="UTF-8",
+        help='Character encoding of document. One of UTF-8, UTF-16, UTF-16LE, '
+             'and UTF-16BE (default: UTF-8)',
         required=False)
     args = parser.parse_args()
 
