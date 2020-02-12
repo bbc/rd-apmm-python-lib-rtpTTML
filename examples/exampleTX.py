@@ -86,10 +86,12 @@ class DocGen:
 
 
 class Transmitter:
-    def __init__(self, address: str, port: int, encoding: str) -> None:
+    def __init__(
+       self, address: str, port: int, encoding: str, bom: bool) -> None:
         self._address = address
         self._port = port
         self._encoding = encoding
+        self._bom = bom
         flowid = uuid4()
         self._docGen = DocGen(flowid)
         self._running = False
@@ -100,10 +102,15 @@ class Transmitter:
     async def run(self) -> None:
         self._running = True
         async with TTMLTransmitter(
-           self._address, self._port, encoding=self._encoding) as transmitter:
+                self._address,
+                self._port,
+                encoding=self._encoding,
+                bom=self._bom
+           ) as transmitter:
             while self._running:
                 now = datetime.now()
-                doc = self._docGen.generateDoc(transmitter.nextSeqNum, str(now))
+                doc = self._docGen.generateDoc(
+                    transmitter.nextSeqNum, str(now))
 
                 await transmitter.sendDoc(doc, now)
                 await asyncio.sleep(1)
@@ -128,12 +135,20 @@ if __name__ == "__main__":
         '-e',
         '--encoding',
         type=str,
-        default="utf-8",
-        help='Character encoding of document (default: utf-8)',
+        default="UTF-8",
+        help='Character encoding of document. One of UTF-8, UTF-16, UTF-16LE, '
+             'and UTF-16BE (default: UTF-8)',
+        required=False)
+    parser.add_argument(
+        '-b',
+        '--bom',
+        type=bool,
+        default=False,
+        help='Include Byte Order Mark at start of of document',
         required=False)
     args = parser.parse_args()
 
-    tx = Transmitter(args.ip_address, args.port, args.encoding)
+    tx = Transmitter(args.ip_address, args.port, args.encoding, args.bom)
 
     loop = asyncio.get_event_loop()
     task = loop.create_task(tx.run())

@@ -9,7 +9,7 @@
 from unittest import TestCase, mock
 from unittest.mock import MagicMock
 from hypothesis import given, strategies as st
-from rtpPayload_ttml import RTPPayload_TTML  # type: ignore
+from rtpPayload_ttml import RTPPayload_TTML, utfEncode  # type: ignore
 
 from rtpTTML import TTMLTransmitter  # type: ignore
 import asyncio
@@ -30,7 +30,7 @@ class TestTTMLTransmitter (TestCase):
 
         reconstructedDoc = ""
         for fragment in fragments:
-            self.assertLessEqual(len(bytearray(fragment, "utf-8")), maxLen)
+            self.assertLessEqual(len(utfEncode(fragment)), maxLen)
             reconstructedDoc += fragment
 
         self.assertEqual(doc, reconstructedDoc)
@@ -44,7 +44,7 @@ class TestTTMLTransmitter (TestCase):
         self.assertLess(rtpTs, 2**32)
 
     @given(
-        st.text().filter(lambda x: len(bytearray(x, "utf-8")) < 2**16),
+        st.text().filter(lambda x: len(utfEncode(x)) < 2**16),
         st.integers(min_value=0, max_value=(2**32)-1),
         st.booleans())
     def test_generateRTPPacket(self, doc, time, marker):
@@ -71,17 +71,19 @@ class TestTTMLTransmitter (TestCase):
         for x in range(len(packets)):
             payload = RTPPayload_TTML().fromBytearray(packets[x].payload)
 
-            self.assertEqual(packets[x].timestamp, self.transmitter._datetimeToRTPTs(time))
+            self.assertEqual(
+                packets[x].timestamp, self.transmitter._datetimeToRTPTs(time))
             self.assertEqual(packets[x].sequenceNumber, expectedSeqNum + x)
             self.assertIn(payload.userDataWords, doc)
-            self.assertLess(len(bytearray(payload.userDataWords, "utf-8")), 2**16)
+            self.assertLess(len(utfEncode(payload.userDataWords)), 2**16)
 
             if x == (len(packets) - 1):
                 self.assertTrue(packets[x].marker)
             else:
                 self.assertFalse(packets[x].marker)
 
-        self.assertEqual(self.transmitter.nextSeqNum, expectedSeqNum + len(packets))
+        self.assertEqual(
+            self.transmitter.nextSeqNum, expectedSeqNum + len(packets))
 
 
 class TestTTMLTransmitterContexts (TestCase):
@@ -102,7 +104,8 @@ class TestTTMLTransmitterContexts (TestCase):
 
         mockTransport.close.assert_called_once()
 
-    @mock.patch("asyncio.unix_events._UnixSelectorEventLoop.create_datagram_endpoint")
+    @mock.patch(
+        "asyncio.unix_events._UnixSelectorEventLoop.create_datagram_endpoint")
     @given(
         st.integers(min_value=0, max_value=(2**16)-1),
         st.text(),
