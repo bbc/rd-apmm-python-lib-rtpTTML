@@ -38,3 +38,6 @@ with TTMLTransmitter(address, port) as tx:
     tx.sendDoc(docStr, nowTime)
     sleep(1)
 ```
+
+## Debugging
+If you are looking to debug RTP TTML packets on the wire, you might be interested in the wireshark disector available [here](https://github.com/bbc/rd-apmm-wireshark-rtpTTML).
