@@ -141,14 +141,11 @@ if __name__ == "__main__":
         required=False)
     parser.add_argument(
         '-b',
-        '--bom',
-        type=bool,
-        default=False,
-        help='Include Byte Order Mark at start of of document',
-        required=False)
+        action='store_true',
+        help='Include Byte Order Mark at start of of document')
     args = parser.parse_args()
 
-    tx = Transmitter(args.ip_address, args.port, args.encoding, args.bom)
+    tx = Transmitter(args.ip_address, args.port, args.encoding, args.b)
 
     loop = asyncio.get_event_loop()
     task = loop.create_task(tx.run())
