@@ -9,7 +9,9 @@
 from unittest import TestCase, mock
 from unittest.mock import MagicMock
 from hypothesis import given, strategies as st
-from rtpPayload_ttml import RTPPayload_TTML, utfEncode  # type: ignore
+from rtpPayload_ttml import (  # type: ignore
+    RTPPayload_TTML, SUPPORTED_ENCODINGS, utfEncode)
+from rtpPayload_ttml.utfUtils import BOMS
 
 from rtpTTML import TTMLTransmitter  # type: ignore
 import asyncio
@@ -43,39 +45,60 @@ class TestTTMLTransmitter (TestCase):
         self.assertGreaterEqual(rtpTs, 0)
         self.assertLess(rtpTs, 2**32)
 
-    @given(
-        st.text().filter(lambda x: len(utfEncode(x)) < 2**16),
+    @given(st.tuples(
+        st.text(min_size=1),
+        st.sampled_from(SUPPORTED_ENCODINGS),
+        st.booleans(),
         st.integers(min_value=0, max_value=(2**32)-1),
-        st.booleans())
-    def test_generateRTPPacket(self, doc, time, marker):
-        expectedSeqNum = self.transmitter._nextSeqNum
+        st.booleans(),
+        st.booleans()).filter(
+            lambda x: len(utfEncode(x[0], x[1], x[2])) < 2**16))
+    def test_generateRTPPacket(self, data):
+        doc, encoding, bom, time, isFirst, marker = data
+        thisTransmitter = TTMLTransmitter("", 0, encoding=encoding, bom=bom)
+        expectedSeqNum = thisTransmitter._nextSeqNum
 
-        packet = self.transmitter._generateRTPPacket(doc, time, marker)
-        payload = RTPPayload_TTML().fromBytearray(packet.payload)
+        packet = thisTransmitter._generateRTPPacket(
+            doc, time, isFirst, marker)
+        payload = RTPPayload_TTML(
+            encoding=encoding, bom=bom).fromBytearray(packet.payload)
 
         self.assertEqual(packet.timestamp, time)
         self.assertEqual(packet.sequenceNumber, expectedSeqNum)
         self.assertEqual(packet.marker, marker)
         self.assertEqual(payload.userDataWords, doc)
 
-        self.assertEqual(self.transmitter._nextSeqNum, expectedSeqNum + 1)
+        self.assertEqual(thisTransmitter._nextSeqNum, expectedSeqNum + 1)
 
-    @given(
-        st.text(),
-        st.datetimes())
-    def test_packetiseDoc(self, doc, time):
-        expectedSeqNum = self.transmitter._nextSeqNum
+    @given(st.tuples(
+        st.text(min_size=1),
+        st.sampled_from(SUPPORTED_ENCODINGS),
+        st.booleans(),
+        st.datetimes(),
+        st.booleans()).filter(
+            lambda x: len(utfEncode(x[0], x[1], x[2])) < 2**16))
+    def test_packetiseDoc(self, data):
+        doc, encoding, bom, time, marker = data
+        thisTransmitter = TTMLTransmitter("", 0, encoding=encoding, bom=bom)
+        expectedSeqNum = thisTransmitter._nextSeqNum
 
-        packets = self.transmitter._packetiseDoc(doc, time)
+        packets = thisTransmitter._packetiseDoc(doc, time)
 
         for x in range(len(packets)):
-            payload = RTPPayload_TTML().fromBytearray(packets[x].payload)
+            payload = RTPPayload_TTML(
+                encoding=encoding, bom=bom).fromBytearray(packets[x].payload)
 
             self.assertEqual(
-                packets[x].timestamp, self.transmitter._datetimeToRTPTs(time))
+                packets[x].timestamp, thisTransmitter._datetimeToRTPTs(time))
             self.assertEqual(packets[x].sequenceNumber, expectedSeqNum + x)
             self.assertIn(payload.userDataWords, doc)
             self.assertLess(len(utfEncode(payload.userDataWords)), 2**16)
+
+            thisBom = BOMS[encoding]
+            if bom and (x == 0):
+                self.assertTrue(payload._userDataWords.startswith(thisBom))
+            else:
+                self.assertFalse(payload._userDataWords.startswith(thisBom))
 
             if x == (len(packets) - 1):
                 self.assertTrue(packets[x].marker)
@@ -83,7 +106,7 @@ class TestTTMLTransmitter (TestCase):
                 self.assertFalse(packets[x].marker)
 
         self.assertEqual(
-            self.transmitter.nextSeqNum, expectedSeqNum + len(packets))
+            thisTransmitter.nextSeqNum, expectedSeqNum + len(packets))
 
 
 class TestTTMLTransmitterContexts (TestCase):

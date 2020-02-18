@@ -155,12 +155,16 @@ class TTMLTransmitter:
 
         return truncatedTS
 
-    def _generateRTPPacket(self, doc: str, time: int, marker: bool) -> RTP:
+    def _generateRTPPacket(
+       self, doc: str, time: int, isFirst: bool, marker: bool) -> RTP:
+        # Only include bom in first packet for doc
+        thisBOM = (isFirst and self._bom)
+
         packet = RTP(
             timestamp=time,
             sequenceNumber=self._nextSeqNum,
             payload=RTPPayload_TTML(
-                    userDataWords=doc, encoding=self._encoding, bom=self._bom
+                    userDataWords=doc, encoding=self._encoding, bom=thisBOM
                 ).toBytearray(),
             marker=marker,
             payloadType=self._payloadType
@@ -177,8 +181,10 @@ class TTMLTransmitter:
 
         lastIndex = len(docFragments) - 1
         for x in range(len(docFragments)):
+            isFirst = (x == 0)
             isLast = (x == lastIndex)
             packets.append(
-                self._generateRTPPacket(docFragments[x], rtpTs, isLast))
+                self._generateRTPPacket(
+                    docFragments[x], rtpTs, isFirst, isLast))
 
         return packets
