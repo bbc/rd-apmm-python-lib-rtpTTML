@@ -1,6 +1,6 @@
 # rtpTTML
 
-A library for transmitting/receiving TTML documents over RTP.
+A library for transmitting/receiving TTML documents over RTP as per [RFC 8759](https://datatracker.ietf.org/doc/rfc8759/).
 
 ## What rtpTTML does/doesn't do
 This library is very minimal. It takes documents as strings, encodes them as an RTP payload, and sends them over UDP. It's doesn't currently implement any of the RTP control mechanisms, SDP, FEC, document validation, document rendering etc. PRs welcome if you want to add these features!
