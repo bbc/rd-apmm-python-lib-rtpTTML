@@ -17,6 +17,7 @@ from rtpTTML import TTMLReceiver
 def processDoc(doc, timestamp):
     print("{}\n".format(doc))
 
+
 port = 12345
 client = TTMLReceiver(port, processDoc)
 client.run()
@@ -32,11 +33,12 @@ address = "127.0.0.1"
 port = 12345
 
 with TTMLTransmitter(address, port) as tx:
-    nowTime = datetime.now()
-    docStr = generateDoc(server.nextSeqNum, nowTime)
+    while True:
+        docStr = generateDoc(tx.nextSeqNum)
+        nowTime = datetime.now()
 
-    tx.sendDoc(docStr, nowTime)
-    sleep(1)
+        tx.sendDoc(docStr, nowTime)
+        sleep(1)
 ```
 
 ## Debugging
