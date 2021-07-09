@@ -7,6 +7,12 @@ This library is very minimal. It takes documents as strings, encodes them as an 
 
 This library makes use of [RTP](https://github.com/bbc/rd-apmm-python-lib-rtp) and [rtpPayload_ttml](https://github.com/bbc/rd-apmm-python-lib-rtpPayload_ttml) for encoding/decoding the payload bitstreams.
 
+## Installation
+
+```bash
+pip install rtpTTML
+```
+
 ## Example usage
 There are fully functional transmitter and receiver examples in the [examples directory](https://github.com/bbc/rd-apmm-python-lib-rtpTTML/tree/master/examples). The bare minimum usage is as follows.
 
