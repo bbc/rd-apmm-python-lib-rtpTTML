@@ -18,8 +18,8 @@ from datetime import datetime
 import socket
 import asyncio
 from random import randrange
-from rtp import RTP, PayloadType  # type: ignore
-from rtpPayload_ttml import RTPPayload_TTML, utfEncode  # type: ignore
+from rtp import RTP, PayloadType
+from rtpPayload_ttml import RTPPayload_TTML, utfEncode
 
 EPOCH = datetime.utcfromtimestamp(0)
 
@@ -139,7 +139,7 @@ class TTMLTransmitter:
     def nextSeqNum(self) -> int:
         return self._nextSeqNum
 
-    def _fragmentDoc(self, doc: str, maxLen: int) -> List[RTP]:
+    def _fragmentDoc(self, doc: str, maxLen: int) -> List[str]:
         fragments = []
         thisStart = 0
 

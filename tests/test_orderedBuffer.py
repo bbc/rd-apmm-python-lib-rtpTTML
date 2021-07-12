@@ -15,8 +15,8 @@
 # limitations under the License.
 
 from unittest import TestCase
-from hypothesis import given, strategies as st
-from rtp import RTP  # type: ignore
+from hypothesis import given, strategies as st  # type: ignore
+from rtp import RTP
 
 from rtpTTML.ttmlReceiver import OrderedBuffer, MAX_SEQ_NUM
 

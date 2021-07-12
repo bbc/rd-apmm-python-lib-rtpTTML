@@ -14,7 +14,7 @@
 
 import asyncio
 import argparse
-from rtpTTML import TTMLReceiver  # type: ignore
+from rtpTTML import TTMLReceiver
 
 
 class Receiver:

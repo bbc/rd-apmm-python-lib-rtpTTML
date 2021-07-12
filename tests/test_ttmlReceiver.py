@@ -15,12 +15,12 @@
 # limitations under the License.
 
 from unittest import TestCase, mock
-from hypothesis import given, assume, strategies as st
+from hypothesis import given, assume, strategies as st  # type: ignore
 
-from rtpTTML.ttmlReceiver import MAX_SEQ_NUM  # type: ignore
-from rtpTTML import TTMLReceiver  # type: ignore
-from rtp import RTP  # type: ignore
-from rtpPayload_ttml import (  # type: ignore
+from rtpTTML.ttmlReceiver import MAX_SEQ_NUM
+from rtpTTML import TTMLReceiver
+from rtp import RTP
+from rtpPayload_ttml import (
     RTPPayload_TTML, SUPPORTED_ENCODINGS, utfEncode)
 
 

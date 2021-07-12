@@ -16,12 +16,12 @@
 
 from unittest import TestCase, mock
 from unittest.mock import MagicMock
-from hypothesis import given, strategies as st
-from rtpPayload_ttml import (  # type: ignore
+from hypothesis import given, strategies as st  # type: ignore
+from rtpPayload_ttml import (
     RTPPayload_TTML, SUPPORTED_ENCODINGS, utfEncode)
 from rtpPayload_ttml.utfUtils import BOMS
 
-from rtpTTML import TTMLTransmitter  # type: ignore
+from rtpTTML import TTMLTransmitter
 import asyncio
 
 

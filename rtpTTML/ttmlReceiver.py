@@ -17,8 +17,8 @@ from typing import List, Callable, Union, Dict, Optional, Tuple, cast
 import socket
 import asyncio
 from collections import OrderedDict
-from rtp import RTP  # type: ignore
-from rtpPayload_ttml import RTPPayload_TTML  # type: ignore
+from rtp import RTP
+from rtpPayload_ttml import RTPPayload_TTML
 
 MAX_SEQ_NUM = (2**16) - 1
 
@@ -43,7 +43,7 @@ class OrderedBuffer:
         while self._nextKey() not in self._buffer:
             self._mostRecentKey = self._nextKey()
 
-    def pop(self) -> RTP:
+    def pop(self) -> Optional[RTP]:
         ret = self._buffer.pop(self._nextKey(), None)
         self._mostRecentKey = self._nextKey()
 
@@ -74,7 +74,9 @@ class OrderedBuffer:
         ret = []
 
         while self.available():
-            ret.append(self.pop())
+            item = self.pop()
+            if item is not None:
+                ret.append(item)
 
         return ret
 
@@ -101,7 +103,7 @@ class TTMLReceiver:
        timeout: Union[float, None] = None,
        encoding: str = "UTF-8",
        bom: bool = False) -> None:
-        self._fragments: Dict[int, RTP] = OrderedDict()
+        self._fragments: Dict[int, str] = OrderedDict()
         self._curTimestamp = 0
         self._port = port
         self._callback = callback
