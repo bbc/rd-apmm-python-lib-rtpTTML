@@ -16,8 +16,8 @@ from datetime import datetime
 from uuid import uuid4, UUID
 import asyncio
 import argparse
-from lxml import etree
-from rtpTTML import TTMLTransmitter  # type: ignore
+from lxml import etree  # type: ignore
+from rtpTTML import TTMLTransmitter
 
 
 class DocGen:

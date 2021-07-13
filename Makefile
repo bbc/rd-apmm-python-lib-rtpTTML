@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PYTHON=`which python3`
 PYTHON3=`which python3`
 PY2DSC=`which py2dsc`
 
@@ -22,8 +21,8 @@ topdir := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 topbuilddir := $(realpath .)
 
 DESTDIR=/
-PROJECT=$(shell python $(topdir)/setup.py --name)
-VERSION=$(shell python $(topdir)/setup.py --version)
+PROJECT=$(shell python3 $(topdir)/setup.py --name)
+VERSION=$(shell python3 $(topdir)/setup.py --version)
 MODNAME=$(PROJECT)
 
 # The rules for names and versions in python, rpm, and deb are different
@@ -62,15 +61,15 @@ $(topbuilddir)/dist:
 	mkdir -p $@
 
 source: $(topbuilddir)/dist
-	$(PYTHON) $(topdir)/setup.py sdist $(COMPILE) --dist-dir=$(topbuilddir)/dist
+	$(PYTHON3) $(topdir)/setup.py sdist $(COMPILE) --dist-dir=$(topbuilddir)/dist
 
 $(topbuilddir)/dist/$(MODNAME)-$(VERSION).tar.gz: source
 
 install:
-	$(PYTHON) $(topdir)/setup.py install --root $(DESTDIR) $(COMPILE)
+	$(PYTHON3) $(topdir)/setup.py install --root $(DESTDIR) $(COMPILE)
 
 clean:
-	$(PYTHON) $(topdir)/setup.py clean || true
+	$(PYTHON3) $(topdir)/setup.py clean || true
 	rm -rf $(topbuilddir)/.tox
 	rm -rf $(topbuilddir)/build/ MANIFEST
 	rm -rf $(topbuilddir)/dist

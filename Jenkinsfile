@@ -56,6 +56,7 @@ pipeline {
                     steps {
                         sh 'git clean -df'
                         sh 'rm -rf /tmp/$(basename ${WORKSPACE})/'
+                        sh 'make clean'
                     }
                 }
                 stage ("Update pyenv") {
@@ -149,7 +150,7 @@ pipeline {
                         }
                         bbcGithubNotify(context: "wheelBuild/py3", status: "PENDING")
                         withBBCRDPythonArtifactory {
-                            bbcMakeWheel("py3.7")
+                            bbcMakeGlobalWheel("py3.7")
                         }
                         script {
                             env.py3wheel_result = "SUCCESS" // This will only run if the steps above succeeded
@@ -200,7 +201,32 @@ pipeline {
                     }
                 }
             }
-            parallel {
+            stages {
+                stage ("Upload to PyPi") {
+                    when {
+                        anyOf {
+                            expression { return params.FORCE_PYUPLOAD }
+                            expression {
+                                bbcShouldUploadArtifacts(branches: ["master"])
+                            }
+                        }
+                    }
+                    steps {
+                        script {
+                            env.pypiUpload_result = "FAILURE"
+                        }
+                        bbcGithubNotify(context: "pypi/upload", status: "PENDING")
+                        bbcTwineUpload(toxenv: "py3.7", pypi: true)
+                        script {
+                            env.pypiUpload_result = "SUCCESS" // This will only run if the steps above succeeded
+                        }
+                    }
+                    post {
+                        always {
+                            bbcGithubNotify(context: "pypi/upload", status: env.pypiUpload_result)
+                        }
+                    }
+                }
                 stage ("Upload to Artifactory") {
                     when {
                         anyOf {
