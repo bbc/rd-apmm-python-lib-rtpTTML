@@ -26,8 +26,8 @@ name = 'rtpTTML'
 version = '0.0.0'
 description = 'A library for transmitting/receiving TTML over RTP'
 url = 'https://github.com/bbc/rd-apmm-python-lib-rtpTTML'
-author = 'James Sandford'
-author_email = 'james.sandford@bbc.co.uk'
+author = 'BBC R&D'
+author_email = 'cloudfit-opensource@rd.bbc.co.uk'
 license = 'apache-2.0'
 
 this_directory = os.path.abspath(os.path.dirname(__file__))
