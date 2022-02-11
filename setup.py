@@ -23,7 +23,7 @@ import os
 
 # Basic metadata
 name = 'rtpTTML'
-version = '0.0.0'
+version = '0.0.1'
 description = 'A library for transmitting/receiving TTML over RTP'
 url = 'https://github.com/bbc/rd-apmm-python-lib-rtpTTML'
 author = 'BBC R&D'
