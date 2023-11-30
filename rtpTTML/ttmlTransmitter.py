@@ -91,7 +91,7 @@ class TTMLTransmitter:
        port: int,
        maxFragmentSize: int = 1200,
        payloadType: PayloadType = PayloadType.DYNAMIC_96,
-       initialSeqNum: int = None,
+       initialSeqNum: Optional[int] = None,
        tsOffset: Optional[int] = None,
        encoding: str = "UTF-8",
        bom: bool = False) -> None:

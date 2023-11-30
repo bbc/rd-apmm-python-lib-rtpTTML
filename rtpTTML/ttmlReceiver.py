@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from __future__ import annotations
-from typing import List, Callable, Union, Dict, Optional, Tuple, cast
+from typing import List, Callable, Dict, Optional, Tuple, cast
 import socket
 import asyncio
 from collections import OrderedDict
@@ -99,8 +99,8 @@ class TTMLReceiver:
        self,
        port: int,
        callback: Callable[[str, int], None],
-       recvBufSize: int = None,
-       timeout: Union[float, None] = None,
+       recvBufSize: Optional[int] = None,
+       timeout: Optional[float] = None,
        encoding: str = "UTF-8",
        bom: bool = False) -> None:
         self._fragments: Dict[int, str] = OrderedDict()
