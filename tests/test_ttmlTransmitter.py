@@ -118,13 +118,10 @@ class TestTTMLTransmitter (TestCase):
 
 
 class TestTTMLTransmitterContexts (TestCase):
-    async def dummyEndpoint(self, mockTransport, mockProtocol):
-        return (mockTransport, mockProtocol)
-
     async def async_test_async(self, endpoint, port, doc, time):
         mockTransport = MagicMock()
         mockProtocol = MagicMock()
-        endpoint.return_value = self.dummyEndpoint(mockTransport, mockProtocol)
+        endpoint.return_value = (mockTransport, mockProtocol)
 
         async with TTMLTransmitter("", port) as transmitter:
             await transmitter.sendDoc(doc, time)
