@@ -16,6 +16,8 @@ jobs:
       actions: read
       contents: read
       id-token: write
+    environment:
+      name: publish-packages
     steps:
       - uses: actions/checkout@v4
 
